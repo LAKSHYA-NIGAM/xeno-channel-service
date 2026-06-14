@@ -1,6 +1,6 @@
 import httpx
+import asyncio
 import json
-import uuid
 from datetime import datetime, timezone
 from app.core.config import settings
 
@@ -12,11 +12,6 @@ async def emit_callback(
     channel: str,
     max_retries: int = 3,
 ):
-    """
-    Posts a single delivery event to the CRM receipt endpoint.
-    Retries up to 3 times with exponential backoff if the CRM is temporarily unavailable.
-    dedupe_key ensures the CRM ignores duplicate callbacks.
-    """
     payload = {
         "campaign_recipient_id": campaign_recipient_id,
         "provider_message_id": provider_message_id,
@@ -26,23 +21,24 @@ async def emit_callback(
         "dedupe_key": f"{provider_message_id}:{event_type}",
     }
 
+    print(f"[EMIT] Firing {event_type} to {settings.CRM_RECEIPT_URL}")
+
     for attempt in range(max_retries):
         try:
-            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(
                     settings.CRM_RECEIPT_URL,
                     json=payload,
                 )
-                response.raise_for_status()
-                return  # Success
+                print(f"[EMIT] Response {response.status_code}: {response.text[:100]}")
+                if response.status_code == 200:
+                    return
         except Exception as e:
-            if attempt == max_retries - 1:
-                # Final attempt failed — log and move on, never crash the simulator
-                print(f"[Callback failed] {event_type} for {campaign_recipient_id}: {e}")
-            else:
-                # Exponential backoff: 1s, 2s, 4s
-                import asyncio
+            print(f"[EMIT] Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
                 await asyncio.sleep(2 ** attempt)
+
+    print(f"[EMIT] All retries failed for {event_type} — {campaign_recipient_id}")
 
 
 async def emit_campaign_complete(campaign_id: str):
