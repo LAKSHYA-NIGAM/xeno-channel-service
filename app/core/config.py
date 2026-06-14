@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    CRM_RECEIPT_URL: str = "https://xeno-crm-ry0s.onrender.com/api/receipts"
+    CRM_RECEIPT_URL: str = "http://localhost:8000/api/receipts"
     PORT: int = 8001
 
     class Config:
