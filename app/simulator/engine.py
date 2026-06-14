@@ -46,6 +46,10 @@ def decide_events(channel: str) -> list[str]:
     return events
 
 
+# Concurrency limit to prevent exhausting HTTP connection pools and ports on free hosting tiers
+SIMULATION_SEMAPHORE = asyncio.Semaphore(15)
+
+
 async def simulate_message(
     campaign_recipient_id: str,
     channel: str,
@@ -56,18 +60,19 @@ async def simulate_message(
     Fires each event after a realistic delay via asyncio.sleep.
     Each event is sent to the CRM receipt endpoint as an async callback.
     """
-    events = decide_events(channel)
+    async with SIMULATION_SEMAPHORE:
+        events = decide_events(channel)
 
-    for event_type in events:
-        delay_min, delay_max = EVENT_DELAYS.get(event_type, (2, 5))
-        await asyncio.sleep(random.uniform(delay_min, delay_max))
+        for event_type in events:
+            delay_min, delay_max = EVENT_DELAYS.get(event_type, (2, 5))
+            await asyncio.sleep(random.uniform(delay_min, delay_max))
 
-        await emit_callback(
-            campaign_recipient_id=campaign_recipient_id,
-            provider_message_id=provider_message_id,
-            event_type=event_type,
-            channel=channel,
-        )
+            await emit_callback(
+                campaign_recipient_id=campaign_recipient_id,
+                provider_message_id=provider_message_id,
+                event_type=event_type,
+                channel=channel,
+            )
 
 
 async def simulate_batch(campaign_id: str, messages: list[dict], channel: str):
