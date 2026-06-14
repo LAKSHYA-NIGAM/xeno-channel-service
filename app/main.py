@@ -20,8 +20,3 @@ app.include_router(send_router)
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "xeno-channel-service"}
-
-@app.get("/config")
-async def config():
-    from app.core.config import settings
-    return {"crm_receipt_url": settings.CRM_RECEIPT_URL}
