@@ -10,12 +10,13 @@ def decide_events(channel: str) -> list[str]:
     """
     Decide which events this recipient will receive based on channel probabilities.
     Events are progressive — a recipient cannot get 'read' without 'delivered' first.
-    Always starts with 'sent'.
+    Always starts with 'sent'. Defaults unknown channels to 'email' logic.
     """
-    probs = CHANNEL_PROBABILITIES.get(channel, CHANNEL_PROBABILITIES["email"])
+    resolved_channel = channel.lower() if channel and channel.lower() in CHANNEL_PROBABILITIES else "email"
+    probs = CHANNEL_PROBABILITIES[resolved_channel]
     events = ["sent"]
 
-    if channel == "whatsapp":
+    if resolved_channel == "whatsapp":
         if random.random() < probs["delivered"]:
             events.append("delivered")
             if random.random() < probs["read"]:
@@ -25,7 +26,7 @@ def decide_events(channel: str) -> list[str]:
         else:
             events.append("failed")
 
-    elif channel == "email":
+    elif resolved_channel == "email":
         if random.random() < probs["delivered"]:
             events.append("delivered")
             if random.random() < probs["opened"]:
@@ -35,7 +36,7 @@ def decide_events(channel: str) -> list[str]:
         else:
             events.append("failed")
 
-    elif channel == "sms":
+    elif resolved_channel == "sms":
         if random.random() < probs["delivered"]:
             events.append("delivered")
             if random.random() < probs["clicked"]:
