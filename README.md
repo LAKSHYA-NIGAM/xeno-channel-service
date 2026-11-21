@@ -44,6 +44,14 @@ Xeno Channel Service is a high-throughput, non-blocking messaging dispatcher mic
 
 ---
 
+
+### 🔒 Webhook Security & Idempotency Architecture (`WebhookDispatcher`)
+To guarantee delivery authenticity and protect downstream endpoints against replay attacks, the service features a dedicated webhook security engine:
+- **HMAC-SHA256 Signatures**: Generates deterministic `X-Signature` headers calculated from `timestamp.serialized_payload` using a shared HMAC key.
+- **Replay Protection**: Verifies payload freshness against configurable timestamp drift tolerance (default: 300 seconds).
+- **Idempotency Guarantee**: Dispatched event keys (`X-Idempotency-Key`) are tracked in an internal set, preventing duplicate network emissions.
+- **Retry Backoff**: Transient connection errors are automatically retried up to 3 times with progressive backoff delays.
+
 ## 🔌 API Reference
 
 ### 1. Ingest Message Batch
